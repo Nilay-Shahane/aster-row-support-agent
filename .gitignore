@@ -83,7 +83,6 @@ evaluation/results/
 evaluation/output/
 
 # Generated diagrams/images
-*.png
 *.jpg
 *.jpeg
 
