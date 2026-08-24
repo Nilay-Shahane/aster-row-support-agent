@@ -1,3 +1,80 @@
+# Aster & Row Support Agent
+
+A RAG-based customer support agent for **Aster & Row**, a fictional ecommerce brand selling bags, drinkware, and travel accessories. The system is a 5-node LangGraph pipeline (Contextor → Router → {OrderTool | RAGTool} → Synthesizer) backed by a Chroma vector store and a whitelist-sanitized order-lookup tool, exposed through a Streamlit chat interface.
+
+---
+
+## 1. Setup and run instructions
+
+```bash
+git clone <your-repo-url>
+cd <repo>
+
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
+
+pip install -r requirements.txt
+
+cp .env.example .env
+# edit .env and set OPENAI_API_KEY
+```
+
+Since the Chroma persistence directory (`rag/chroma_store/`) is committed to the repo, **ingestion does not need to be re-run** to demo the agent. If you edit any file under `knowledge-base/`, re-ingest by uncommenting the loader → parser → chunker → `store.add_records(records)` block in `rag/vectorstore.py`'s `__main__` and running:
+
+```bash
+python -m rag.vectorstore
+```
+
+Run the CLI test harness (drives the graph directly, no UI):
+
+```bash
+python graph.py
+```
+
+Run the Streamlit app:
+
+```bash
+streamlit run app.py
+```
+
+Run the evaluation suite:
+
+```bash
+python evaluator.py
+python evaluator.py --visible-only   # skip evaluation/custom-cases.json if present
+```
+
+## 2. Environment variables
+
+`.env.example`:
+
+```
+OPENAI_API_KEY=
+```
+
+`OPENAI_API_KEY` is the only variable actually read by the code (`embedder.py` via `os.environ.get`, `llm.py` via `ChatOpenAI` picking up the same env var through `langchain-openai`, both after `load_dotenv()`).
+
+## 3. Model, embedding, framework, storage
+
+| Choice | What | Where |
+|---|---|---|
+| LLM | `gpt-4.1-mini`, `temperature=0`, `max_tokens=512` | `llm.py` |
+| Embedding | OpenAI `text-embedding-3-small` (1536-dim), batched at 100/call | `rag/embedder.py` |
+| Framework | LangGraph `StateGraph` with `MemorySaver` checkpointing | `graph.py` |
+| Vector storage | Local persistent Chroma collection (`aster_and_row_kb`), cosine space | `rag/vectorstore.py` |
+| UI | Streamlit, per-session thread ID, expandable turn trace | `app.py` |
+
+## 4. Architecture
+
+```
+START → Contextor → Router ──order──→ OrderTool ──┐
+                       │                            ├──→ Synthesizer → END
+                       ├──rag───────→ RAGTool ───────┘
+                       └──direct────────────────────┘
+```
+
+Conceptually this splits into three stages: **query understanding** (Contextor, Router — decide what's being asked), **retrieval** (OrderTool, RAGTool — go get the facts), and **synthesis** (Synthesizer — grounds the answer, cites sources, decides handoff). The `direct` route skips retrieval entirely for greetings/small talk.
 
 **Contextor** (`agents/contextor.py`) rewrites the latest user turn into a standalone query using an LLM with structured output (`ContextorOutput`), carrying forward an active order ID from memory when the user doesn't repeat it. It also does a deliberate query-expansion step: if the message mentions a damaged/broken/wrong item, it appends terms like *"reporting window timeframe deadline requirements"* to the rewritten query so the retriever is more likely to surface time-limited policy sections, not just the general damage-policy chunk.
 
@@ -80,6 +157,8 @@ Deterministic assertions (source ids, tool calls, forbidden disclosures, abstent
 - **`app.py` doesn't write to `graph_execution.log`.** Structured logging (`logging.basicConfig(...)`) is only configured in `graph.py`'s own module scope; the Streamlit entrypoint imports `graph` (so the handler is technically registered) but never calls `logger.info`/`logger.exception` itself, and its own except-block only shows the error in the UI — so a Streamlit-driven session doesn't produce the same route/result trace that the `graph.py` CLI harness does. Production observability should log per-turn (route, retrieved chunk ids + scores, tool call args/result, final `confidence`/`handoff`/`injection_detected`) from a single place regardless of entrypoint.
 - **Malformed vs. unknown order IDs aren't distinguished.** `order_tool_node` normalizes and does a direct equality lookup; a malformed ID (wrong format) and a syntactically valid but nonexistent ID both just fall through to the same "not found" path. That satisfies "handle safely" but doesn't give the user a more specific "that doesn't look like an order ID" message.
 - **Single embedding/LLM provider.** Both `embedder.py` and `llm.py` hard-depend on OpenAI with no fallback; a provider outage stalls ingestion, retrieval, and generation simultaneously.
+- **Handoff can still be wrong when the upstream signal is wrong.** Bug 2's fix guarantees the *precedence cascade* is applied correctly in code, but the cascade acts on `injection_detected` and `confidence`, which are still LLM judgments — and the remaining branch (privacy/action requests, rule 13.4) is trusted entirely to the model's semantic call rather than a code check. So a case can occasionally get the wrong `handoff` not because the cascade misfired, but because the classification feeding it was wrong. This shows up more on edge-phrased damage/privacy requests than on clear-cut ones. The fix narrows the failure surface; it doesn't close it, and there's no deterministic backstop on the classification step itself the way there is on the boolean logic.
+- **`must_include` can fail on semantically-correct answers due to formatting variance.** `_flexible_contains` normalizes hyphens, quotes, whitespace, markdown-bold, and simple singular/plural, but it doesn't cover every surface variant — e.g. "45 days" vs. "45-day" as an adjective, or a unit written differently than the fixture expects. When that happens the model's answer is factually and ethically correct but the case is scored as a fail. This is a precision gap in the evaluator's string-matching, not a grounding failure in the agent, and it's worth calling out explicitly rather than letting a reader assume every failing case is a real bug.
 
 ## 9. AI coding tools used
 
