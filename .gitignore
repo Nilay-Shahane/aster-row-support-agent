@@ -1,0 +1,111 @@
+# =========================
+# Python
+# =========================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# =========================
+# Environment Variables
+# =========================
+
+.env
+.env.*
+!.env.example
+
+# =========================
+# Logs
+# =========================
+
+*.log
+logs/
+graph_execution.log
+
+# =========================
+# Jupyter / Notebooks
+# =========================
+
+.ipynb_checkpoints/
+
+# =========================
+# IDE
+# =========================
+
+.vscode/
+.idea/
+
+# =========================
+# OS Files
+# =========================
+
+.DS_Store
+Thumbs.db
+
+# =========================
+# Python Packaging
+# =========================
+
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================
+# AI / RAG Generated Files
+# =========================
+
+# Vector databases
+chroma/
+chroma_db/
+faiss_index/
+
+# Embeddings cache
+embeddings/
+*.pkl
+
+# Model cache
+models/
+.cache/
+
+# =========================
+# Project Generated Files
+# =========================
+
+# Evaluation outputs
+evaluation/results/
+evaluation/output/
+
+# Generated diagrams/images
+*.png
+*.jpg
+*.jpeg
+
+# Keep important diagrams if needed
+!langgraph_diagram.png
+
+# =========================
+# Local Data
+# =========================
+
+# Ignore large local datasets
+data/*
+!data/.gitkeep
+
+# Ignore temporary files
+tmp/
+temp/
+*.tmp
+
+# =========================
+# Node (if frontend added later)
+# =========================
+
+node_modules/
+npm-debug.log*
