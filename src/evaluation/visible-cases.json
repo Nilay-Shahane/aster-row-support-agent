@@ -171,7 +171,7 @@
           "tracking number"
         ],
         "tool": "not_called_without_id",
-        "handoff": true
+        "handoff": false
       }
     },
     {
@@ -309,7 +309,7 @@
           "automatic approval"
         ],
         "required_sources": [
-          
+          "01-returns-policy-current.md"
         ],
         "tool": "not_called",
         "handoff": false
