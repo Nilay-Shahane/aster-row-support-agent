@@ -23,8 +23,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 # configure environment variables
+# Windows (cmd):
+copy .env.example .env
+# Windows (PowerShell) / macOS / Linux:
 cp .env.example .env
-# edit .env and set OPENAI_API_KEY
+# then edit .env and set OPENAI_API_KEY
 
 # move into src (all package imports are rooted here)
 cd src
