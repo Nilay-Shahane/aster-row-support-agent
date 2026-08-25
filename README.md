@@ -110,17 +110,17 @@ This runs all 20 cases: 15 from the supplied `visible-cases.json` plus 5 origina
 
 | Category | Passed |
 |---|---|
-| retrieval | 1/2 |
-| groundedness | 0/2 |
+| retrieval | 2/2 |
+| groundedness | 2/2 |
 | multi-source-grounding | 0/1 |
-| conversation | 0/1 |
-| tool-use | 0/3 |
-| tool-reliability | 0/5 |
+| conversation | 1/1 |
+| tool-use | 2/3 
+| tool-reliability | 3/5 |
 | privacy | 1/1 |
-| prompt-security | 0/3 |
-| abstention | 0/1 |
+| prompt-security | 2/3 |
+| abstention | 1/1 |
 | source-conflict | 0/1 |
-| **TOTAL** | **2/20** |
+| **TOTAL** | **14/20** |
 
 **Final** — after the fixes below, run against all 15 supplied visible cases + all 5 original custom cases:
 
